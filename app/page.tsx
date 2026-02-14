@@ -1,20 +1,26 @@
 // app/page.tsx
+import { Prisma, Product } from "@prisma/client";
+type StockLogWithProduct = Prisma.StockMovementGetPayload<{
+  include: { product: true };
+}>;
 import { prisma } from '../prisma/db';
 import Link from 'next/link';
 
 // ฟังก์ชันดึงสินค้า (เหมือนเดิม)
-async function getProducts() {
+async function getProducts(): Promise<Product[]> {
   return await prisma.product.findMany();
 }
 
+
 // --- ฟังก์ชันใหม่: ดึงประวัติ 5 รายการล่าสุด ---
-async function getRecentLogs() {
+async function getRecentLogs(): Promise<StockLogWithProduct[]> {
   return await prisma.stockMovement.findMany({
-    take: 5, // เอาแค่ 5 อันล่าสุด
-    orderBy: { createdAt: 'desc' }, // เรียงจากใหม่ไปเก่า
-    include: { product: true } // ดึงชื่อสินค้ามาด้วย (Join Table)
+    take: 5,
+    orderBy: { createdAt: 'desc' },
+    include: { product: true }
   });
 }
+
 
 export default async function Home() {
   const products = await getProducts();
