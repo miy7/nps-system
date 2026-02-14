@@ -1,0 +1,47 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// --- 1. ตารางพนักงาน (Users) ---
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String   // ในของจริงต้องเข้ารหัส แต่ตอนนี้เก็บสดไปก่อน
+  role      String   // 'Sender', 'Receiver', 'Admin'
+  name      String
+}
+
+// --- 2. ตารางสินค้า (Products) ---
+model Product {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique // รหัสสินค้า เช่น 'EMT-01'
+  name      String
+  category  String   // 'Conduit', 'Wire'
+  unit      String   // 'เส้น', 'ม้วน'
+  stock     Int      @default(0)
+  location  String   // 'Main Store', 'Site A'
+  
+  // ความสัมพันธ์: สินค้า 1 ตัว มีประวัติการเคลื่อนไหวได้หลายครั้ง
+  movements StockMovement[]
+}
+
+// --- 3. ตารางประวัติการเข้า-ออก (Logs) ---
+model StockMovement {
+  id        Int      @id @default(autoincrement())
+  type      String   // 'IN' (รับเข้า), 'OUT' (จ่ายออก)
+  quantity  Int
+  siteName  String?  // ระบุว่าไปไซส์ไหน (ถ้าจ่ายออก)
+  note      String?
+  createdAt DateTime @default(now())
+  
+  // เชื่อมกับสินค้าตัวไหน
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+}
