@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     }
 
     const result = await prisma.$transaction(
-      async (tx: Prisma.TransactionClient) => {
+      async (tx: any) => {
 
         const updatedProduct = await tx.product.update({
           where: { id: product.id },
