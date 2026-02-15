@@ -1,6 +1,7 @@
-import { prisma } from '@/prisma/db'
+import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import { SignJWT } from 'jose'
+import { signToken } from '@/lib/auth'
+import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
   const { username, password } = await req.json()
@@ -9,31 +10,18 @@ export async function POST(req: Request) {
     where: { username }
   })
 
-  if (!user) {
-    return Response.json({ success: false, message: 'User not found' })
-  }
+  if (!user) return NextResponse.json({ error: 'User not found' }, { status: 401 })
 
   const valid = await bcrypt.compare(password, user.password)
+  if (!valid) return NextResponse.json({ error: 'Wrong password' }, { status: 401 })
 
-  if (!valid) {
-    return Response.json({ success: false, message: 'Wrong password' })
-  }
-
-  const token = await new SignJWT({
+  const token = await signToken({
     id: user.id,
     role: user.role,
     name: user.name
   })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('1d')
-    .sign(new TextEncoder().encode(process.env.JWT_SECRET))
 
-  return new Response(
-    JSON.stringify({ success: true }),
-    {
-      headers: {
-        'Set-Cookie': `token=${token}; HttpOnly; Path=/; Max-Age=86400`
-      }
-    }
-  )
+  const res = NextResponse.json({ success: true })
+  res.cookies.set('token', token, { httpOnly: true })
+  return res
 }
