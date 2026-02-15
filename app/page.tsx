@@ -6,6 +6,9 @@ type StockLogWithProduct = Prisma.StockMovementGetPayload<{
 import { prisma } from '../prisma/db';
 import Link from 'next/link';
 
+export const dynamic = "force-dynamic";
+
+
 // ฟังก์ชันดึงสินค้า (เหมือนเดิม)
 async function getProducts(): Promise<Product[]> {
   return await prisma.product.findMany();
