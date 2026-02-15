@@ -10,11 +10,12 @@ datasource db {
   directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
+// เพิ่มต่อท้ายไฟล์เดิม
 model User {
   id       Int    @id @default(autoincrement())
   username String @unique
   password String
-  role     Role
+  role     String // เช่น "ADMIN", "SENDER" (นาย A), "APPROVER" (นาย B)
   name     String
 }
 
