@@ -1,27 +1,33 @@
-import { jwtVerify } from 'jose'
-import { NextResponse } from 'next/server'
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { jwtVerify } from "jose";
 
-export async function middleware(req: any) {
-  const token = req.cookies.get('token')?.value
+const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
 
-  if (!token && req.nextUrl.pathname !== '/login') {
-    return NextResponse.redirect(new URL('/login', req.url))
+export async function middleware(req: NextRequest) {
+  const token = req.cookies.get("token")?.value;
+
+  if (!token) {
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  if (token) {
-    try {
-      await jwtVerify(
-        token,
-        new TextEncoder().encode(process.env.JWT_SECRET)
-      )
-    } catch {
-      return NextResponse.redirect(new URL('/login', req.url))
+  try {
+    const { payload } = await jwtVerify(token, secret);
+
+    const role = payload.role as string;
+    const path = req.nextUrl.pathname;
+
+    // ❌ viewer เข้า outbound ไม่ได้
+    if (path.startsWith("/outbound") && role === "viewer") {
+      return NextResponse.redirect(new URL("/", req.url));
     }
-  }
 
-  return NextResponse.next()
+    return NextResponse.next();
+  } catch (err) {
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
 }
 
 export const config = {
-  matcher: ['/((?!_next|api|favicon.ico).*)'],
-}
+  matcher: ["/outbound/:path*"],
+};
