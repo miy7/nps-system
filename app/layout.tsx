@@ -1,41 +1,38 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import Navbar from "./components/Navbar"; // <--- 1. นำเข้า Navbar ที่เราเพิ่งสร้าง
+import "./globals.css"
+import Link from "next/link"
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  title: "NPS Logistics", // <--- 2. เปลี่ยนชื่อเว็บให้ตรงงานจริง
-  description: "ระบบบริหารจัดการวัสดุ",
-};
+export const metadata = {
+  title: "NPS Logistics",
+  description: "Modern Logistics SaaS",
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 text-gray-900`}
-      >
-        {/* 3. วาง Navbar ไว้ด้านบนสุด */}
-        <Navbar /> 
-        
-        {/* 4. จัดเนื้อหาให้อยู่ตรงกลางสวยๆ */}
-        <main className="container mx-auto px-4 pb-8">
+    <html lang="th">
+      <body className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen">
+
+        {/* Navbar */}
+        <nav className="bg-white/70 backdrop-blur-md border-b border-white/30 shadow-sm sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            
+            <Link href="/" className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              🚀 NPS Logistics
+            </Link>
+
+           
+
+          </div>
+        </nav>
+
+        <main className="max-w-7xl mx-auto px-6 py-10">
           {children}
         </main>
+
       </body>
     </html>
-  );
+  )
 }

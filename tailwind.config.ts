@@ -4,15 +4,10 @@ const config: Config = {
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./app/**/*.{js,ts,jsx,tsx,mdx}", // <--- บรรทัดนี้สำคัญที่สุด! ต้องมี app
+    "./app/**/*.{js,ts,jsx,tsx,mdx}", // <--- บรรทัดนี้สำคัญที่สุด! ถ้าไม่มี = หน้ากาก
   ],
   theme: {
-    extend: {
-      colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-      },
-    },
+    extend: {},
   },
   plugins: [],
 };

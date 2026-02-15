@@ -2,10 +2,17 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export default async function Dashboard({ searchParams }: { searchParams: { site?: string; building?: string } }) {
+// 1. แก้ตรงบรรทัดนี้: รับ props เข้ามา แล้วบอกว่าเป็น Promise
+export default async function Dashboard(props: {
+  searchParams: Promise<{ site?: string; building?: string }>;
+}) {
+  // 2. ต้องมีบรรทัดนี้! แกะกล่อง Promise ก่อนใช้
+  const searchParams = await props.searchParams;
+  
   const site = searchParams.site || "";
   const building = searchParams.building || "";
 
+  // ดึงข้อมูลจาก Database
   const stock = await prisma.transaction.findMany({
     where: {
       status: "COMPLETED",
@@ -25,13 +32,13 @@ export default async function Dashboard({ searchParams }: { searchParams: { site
             name="site" 
             placeholder="📍 ค้นหา Site (เช่น CM)" 
             defaultValue={site} 
-            className="border-gray-200 border p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+            className="border-gray-200 border p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700" 
           />
           <input 
             name="building" 
             placeholder="🏢 ค้นหาอาคาร (เช่น F)" 
             defaultValue={building} 
-            className="border-gray-200 border p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+            className="border-gray-200 border p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700" 
           />
           <button type="submit" className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 shadow-md transition transform hover:scale-105">
             ค้นหา
