@@ -1,22 +1,46 @@
-// prisma/seed.js
 const { PrismaClient } = require('@prisma/client')
+const bcrypt = require('bcryptjs')
+
 const prisma = new PrismaClient()
 
 async function main() {
-  // 1. สร้าง User
+  const hashedPassword = await bcrypt.hash('123', 10)
+
+  // Users
   await prisma.user.upsert({
-    where: { username: 'sender' },
+    where: { username: 'admin' },
     update: {},
-    create: { username: 'sender', password: '123', role: 'Sender', name: 'พี่สมชาย (ส่งของ)' },
-  })
-  
-  await prisma.user.upsert({
-    where: { username: 'receiver' },
-    update: {},
-    create: { username: 'receiver', password: '123', role: 'Receiver', name: 'น้องวิชัย (รับของ)' },
+    create: {
+      username: 'admin',
+      password: hashedPassword,
+      role: 'admin',
+      name: 'admin (Admin)'
+    },
   })
 
-  // 2. สร้างสินค้า (ท่อต่างๆ)
+  await prisma.user.upsert({
+    where: { username: 'store' },
+    update: {},
+    create: {
+      username: 'store',
+      password: hashedPassword,
+      role: 'store',
+      name: 'atore (Store)'
+    },
+  })
+
+  await prisma.user.upsert({
+    where: { username: 'viewer' },
+    update: {},
+    create: {
+      username: 'viewer',
+      password: hashedPassword,
+      role: 'viewer',
+      name: 'ผู้ชมระบบ'
+    },
+  })
+
+  // Products
   const products = [
     { code: 'EMT-12', name: 'ท่อ EMT 1/2"', category: 'Conduit', unit: 'เส้น', stock: 500, location: 'Warehouse A' },
     { code: 'EMT-12-A', name: 'ท่อ EMT 1/2"', category: 'Conduit', unit: 'เส้น', stock: 1500, location: 'Warehouse B' },
@@ -34,15 +58,13 @@ async function main() {
     })
   }
 
-  console.log('✅ ใส่ข้อมูลเริ่มต้น (Seed) เรียบร้อยแล้ว!');
+  console.log('✅ Seed สำเร็จแล้ว')
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect()
-  })
-  .catch(async (e) => {
+  .then(() => prisma.$disconnect())
+  .catch((e) => {
     console.error(e)
-    await prisma.$disconnect()
+    prisma.$disconnect()
     process.exit(1)
   })

@@ -9,12 +9,19 @@ datasource db {
 
 
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  password  String
-  role      String
-  name      String
+  id       Int    @id @default(autoincrement())
+  username String @unique
+  password String
+  role     Role
+  name     String
 }
+
+enum Role {
+  admin
+  store
+  viewer
+}
+
 
 model Product {
   id        Int      @id @default(autoincrement())
