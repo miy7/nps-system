@@ -1,10 +1,35 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        alert(data?.error || "Login failed")
+        return
+      }
+
+      router.push("/")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="flex items-center justify-center min-h-[80vh]">
@@ -19,7 +44,7 @@ export default function LoginPage() {
           เข้าสู่ระบบ NPS 
         </p>
 
-        <form className="flex flex-col gap-5">
+        <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
 
           <input
             type="text"
@@ -39,9 +64,10 @@ export default function LoginPage() {
 
           <button
             type="submit"
+            disabled={loading}
             className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold shadow-lg hover:opacity-90 transition"
           >
-            Sign In
+            {loading ? "Signing in..." : "Sign In"}
           </button>
 
         </form>

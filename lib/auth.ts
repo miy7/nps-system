@@ -1,15 +1,25 @@
 import { SignJWT, jwtVerify } from 'jose'
 
-const secret = new TextEncoder().encode(process.env.JWT_SECRET!)
+function getSecret() {
+  const raw = process.env.JWT_SECRET
+  if (!raw) throw new Error('JWT_SECRET is not set')
+  return new TextEncoder().encode(raw)
+}
 
-export async function signToken(payload: any) {
+export type AuthTokenPayload = {
+  sub: string
+  role: 'admin' | 'store' | 'viewer'
+  username: string
+}
+
+export async function signToken(payload: AuthTokenPayload) {
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime('1d')
-    .sign(secret)
+    .sign(getSecret())
 }
 
 export async function verifyToken(token: string) {
-  const { payload } = await jwtVerify(token, secret)
-  return payload
+  const { payload } = await jwtVerify(token, getSecret())
+  return payload as unknown as AuthTokenPayload
 }

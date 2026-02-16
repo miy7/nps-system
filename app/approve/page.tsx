@@ -1,13 +1,11 @@
-import { PrismaClient } from "@prisma/client";
 import { approveTransaction } from "../actions";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export default async function ApprovePage() {
   // ดึงรายการที่ยังไม่ได้รับ (PENDING)
   const pendingItems = await prisma.transaction.findMany({
     where: { status: "PENDING" },
-    include: { product: true },
+    include: { material: true, sender: true },
     orderBy: { createdAt: "desc" },
   });
 
@@ -24,7 +22,7 @@ export default async function ApprovePage() {
               <th className="border p-2">เวลา</th>
               <th className="border p-2">ผู้ส่ง</th>
               <th className="border p-2">สถานที่</th>
-              <th className="border p-2">สินค้า</th>
+              <th className="border p-2">วัสดุ</th>
               <th className="border p-2">จำนวน</th>
               <th className="border p-2">จัดการ</th>
             </tr>
@@ -33,9 +31,9 @@ export default async function ApprovePage() {
             {pendingItems.map((item) => (
               <tr key={item.id} className="text-center">
                 <td className="border p-2">{item.createdAt.toLocaleTimeString()}</td>
-                <td className="border p-2">{item.sender}</td>
+                <td className="border p-2">{item.sender.username}</td>
                 <td className="border p-2">{item.site} / {item.building}</td>
-                <td className="border p-2">{item.product.name}</td>
+                <td className="border p-2">{item.material.name}</td>
                 <td className="border p-2 font-bold text-blue-600">{item.quantity}</td>
                 <td className="border p-2">
                   <form action={approveTransaction}>

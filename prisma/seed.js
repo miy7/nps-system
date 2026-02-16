@@ -1,56 +1,63 @@
 const { PrismaClient } = require('@prisma/client')
+const bcrypt = require('bcryptjs')
 const prisma = new PrismaClient()
 
 async function main() {
-  // -------------------------
-  // 1. สร้าง User (นาย A และ นาย B)
-  // -------------------------
-  console.log('🌱 กำลังสร้าง User...')
-  
+  console.log('🌱 Seeding users...')
+
+  const adminPassword = await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD || 'admin123', 10)
+  const storePassword = await bcrypt.hash(process.env.SEED_STORE_PASSWORD || 'store123', 10)
+  const viewerPassword = await bcrypt.hash(process.env.SEED_VIEWER_PASSWORD || 'viewer123', 10)
+
   await prisma.user.upsert({
-    where: { username: 'mr_a' },
-    update: {},
+    where: { username: 'admin' },
+    update: { password: adminPassword, role: 'admin' },
     create: {
-      username: 'mr_a',
-      password: '123',
-      name: 'นาย A (ผู้ส่ง)',
-      role: 'SENDER',
+      username: 'admin',
+      password: adminPassword,
+      role: 'admin',
     },
   })
 
   await prisma.user.upsert({
-    where: { username: 'mr_b' },
-    update: {},
+    where: { username: 'store' },
+    update: { password: storePassword, role: 'store' },
     create: {
-      username: 'mr_b',
-      password: '123',
-      name: 'นาย B (ผู้รับ)',
-      role: 'APPROVER',
+      username: 'store',
+      password: storePassword,
+      role: 'store',
     },
   })
 
-  // -------------------------
-  // 2. สร้างสินค้าตัวอย่าง (Products)
-  // -------------------------
-  console.log('🌱 กำลังสร้างสินค้า...')
+  await prisma.user.upsert({
+    where: { username: 'viewer' },
+    update: { password: viewerPassword, role: 'viewer' },
+    create: {
+      username: 'viewer',
+      password: viewerPassword,
+      role: 'viewer',
+    },
+  })
 
-  const products = [
-    { code: 'EMT-12', name: 'ท่อ EMT 1/2"', unit: 'เส้น' },
-    { code: 'EMT-34', name: 'ท่อ EMT 3/4"', unit: 'เส้น' },
-    { code: 'IMC-1', name: 'ท่อ IMC 1"', unit: 'เส้น' },
-    { code: 'THW-16', name: 'สายไฟ THW 16 sq.mm', unit: 'ม้วน' },
-    { code: 'THW-300', name: 'สายไฟ THW 300 sq.mm', unit: 'ม้วน' },
+  console.log('🌱 Seeding materials...')
+
+  const materials = [
+    { name: 'EMT 1/2"', type: 'EMT', unit: 'เส้น' },
+    { name: 'EMT 3/4"', type: 'EMT', unit: 'เส้น' },
+    { name: 'IMC 1"', type: 'IMC', unit: 'เส้น' },
+    { name: 'HDPE', type: 'HDPE', unit: 'เมตร' },
+    { name: 'Cable THW', type: 'CABLE', unit: 'ม้วน' },
   ]
 
-  for (const p of products) {
-    await prisma.product.upsert({
-      where: { code: p.code },
-      update: {},
-      create: p
+  for (const m of materials) {
+    await prisma.material.upsert({
+      where: { name: m.name },
+      update: { type: m.type, unit: m.unit },
+      create: m,
     })
   }
 
-  console.log('✅ Seed ข้อมูลเสร็จสมบูรณ์ทั้งหมดแล้ว!')
+  console.log('✅ Seed completed')
 }
 
 // เรียกใช้งานฟังก์ชัน main

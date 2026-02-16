@@ -1,25 +1,48 @@
 "use server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import { verifyToken } from "@/lib/auth";
 
-const prisma = new PrismaClient();
+async function getCurrentUser() {
+  const token = (await cookies()).get("token")?.value;
+  if (!token) return null;
+  try {
+    const payload = await verifyToken(token);
+    const userId = Number(payload.sub);
+    if (!Number.isFinite(userId)) return null;
+    return await prisma.user.findUnique({ where: { id: userId } });
+  } catch {
+    return null;
+  }
+}
 
-// 1. นาย A บันทึกของเข้า (สถานะ PENDING)
+// 1. Send materials (creates PENDING transaction)
 export async function createTransaction(formData: FormData) {
-  const productId = parseInt(formData.get("productId") as string);
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
+  if (user.role === "viewer") throw new Error("Forbidden");
+
+  const materialId = parseInt(formData.get("materialId") as string);
   const quantity = parseInt(formData.get("quantity") as string);
-  const site = formData.get("site") as string;
-  const building = formData.get("building") as string;
-  const sender = formData.get("sender") as string;
+  const site = (formData.get("site") as string) || "";
+  const building = (formData.get("building") as string) || "";
+
+  if (!Number.isFinite(materialId) || !Number.isFinite(quantity) || quantity <= 0) {
+    throw new Error("Invalid input");
+  }
+  if (!site.trim() || !building.trim()) {
+    throw new Error("Invalid input");
+  }
 
   await prisma.transaction.create({
     data: {
-      productId,
       quantity,
       site,
       building,
-      sender,
-      status: "PENDING", // รอรับ
+      status: "PENDING",
+      material: { connect: { id: materialId } },
+      sender: { connect: { id: user.id } },
     },
   });
 
@@ -27,27 +50,24 @@ export async function createTransaction(formData: FormData) {
   revalidatePath("/");        // รีเฟรชหน้า Dashboard
 }
 
-// 2. นาย B กดรับของ (เปลี่ยนสถานะเป็น COMPLETED)
+// 2. Receive materials (mark COMPLETED)
 export async function approveTransaction(formData: FormData) {
-  const id = parseInt(formData.get("id") as string);
-  const receiverName = "นาย B"; // อนาคตอาจจะดึงจาก Login
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
+  if (user.role === "viewer") throw new Error("Forbidden");
 
-  // อัปเดตสถานะใน Database
-  const updatedTx = await prisma.transaction.update({
+  const id = parseInt(formData.get("id") as string);
+  if (!Number.isFinite(id)) throw new Error("Invalid input");
+
+  await prisma.transaction.update({
     where: { id },
     data: {
       status: "COMPLETED",
-      receiver: receiverName,
+      receiver: { connect: { id: user.id } },
+      completedAt: new Date(),
     },
-    include: { product: true } // ดึงข้อมูลสินค้ามาด้วยเผื่อยิง API
+    include: { material: true },
   });
-
-  // --- จุดเชื่อมต่อ API ในอนาคต ---
-  // await fetch('https://another-web.com/api/stock', {
-  //   method: 'POST',
-  //   body: JSON.stringify(updatedTx)
-  // });
-  // -----------------------------
 
   revalidatePath("/approve");
   revalidatePath("/");

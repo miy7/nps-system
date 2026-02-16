@@ -1,6 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 // 1. แก้ตรงบรรทัดนี้: รับ props เข้ามา แล้วบอกว่าเป็น Promise
 export default async function Dashboard(props: {
@@ -12,15 +10,36 @@ export default async function Dashboard(props: {
   const site = searchParams.site || "";
   const building = searchParams.building || "";
 
-  // ดึงข้อมูลจาก Database
-  const stock = await prisma.transaction.findMany({
+  const completed = await prisma.transaction.findMany({
     where: {
       status: "COMPLETED",
       site: site ? { contains: site } : undefined,
       building: building ? { contains: building } : undefined,
     },
-    include: { product: true },
+    include: { material: true },
+    orderBy: { createdAt: "desc" },
   });
+
+  const stockMap = new Map<
+    number,
+    { id: number; name: string; unit: string; quantity: number }
+  >();
+
+  for (const tx of completed) {
+    const cur = stockMap.get(tx.materialId);
+    if (!cur) {
+      stockMap.set(tx.materialId, {
+        id: tx.materialId,
+        name: tx.material.name,
+        unit: tx.material.unit,
+        quantity: tx.quantity,
+      });
+      continue;
+    }
+    cur.quantity += tx.quantity;
+  }
+
+  const stock = Array.from(stockMap.values()).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div>
@@ -52,11 +71,10 @@ export default async function Dashboard(props: {
           <div key={item.id} className="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-500 hover:shadow-lg transition">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="font-bold text-lg text-gray-800">{item.product.name}</h3>
-                <p className="text-sm text-gray-400 font-mono">{item.product.code}</p>
+                <h3 className="font-bold text-lg text-gray-800">{item.name}</h3>
               </div>
               <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                {item.product.unit}
+                {item.unit}
               </span>
             </div>
             
@@ -65,14 +83,6 @@ export default async function Dashboard(props: {
               <span className="text-gray-500 mb-1">คงเหลือ</span>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between text-sm text-gray-500">
-              <div className="flex items-center gap-1">
-                📍 {item.site} - {item.building}
-              </div>
-              <div className="text-xs">
-                {new Date(item.updatedAt).toLocaleDateString('th-TH')}
-              </div>
-            </div>
           </div>
         ))}
 
