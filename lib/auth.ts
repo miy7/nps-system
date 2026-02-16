@@ -1,8 +1,8 @@
 import { SignJWT, jwtVerify } from 'jose'
 
 function getSecret() {
-  const raw = process.env.JWT_SECRET
-  if (!raw) throw new Error('JWT_SECRET is not set')
+  const raw = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET
+  if (!raw) throw new Error('JWT_SECRET (or NEXTAUTH_SECRET) is not set')
   return new TextEncoder().encode(raw)
 }
 
