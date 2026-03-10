@@ -1,38 +1,44 @@
 "use server";
-import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
-import { verifyToken } from "@/lib/auth";
 
-async function getCurrentUser() {
-  const token = (await cookies()).get("token")?.value;
-  if (!token) return null;
-  try {
-    const payload = await verifyToken(token);
-    const userId = Number(payload.sub);
-    if (!Number.isFinite(userId)) return null;
-    return await prisma.user.findUnique({ where: { id: userId } });
-  } catch {
-    return null;
-  }
+import { MaterialType } from "@prisma/client";
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
+import { requireCurrentUser } from "@/lib/session";
+
+const VALID_TYPES = new Set<MaterialType>(["EMT", "IMC", "HDPE", "CABLE"]);
+
+function parsePositiveInt(value: FormDataEntryValue | null): number | null {
+  if (typeof value !== "string") return null;
+  const num = Number.parseInt(value, 10);
+  if (!Number.isFinite(num) || num <= 0) return null;
+  return num;
 }
 
-// 1. Send materials (creates PENDING transaction)
+function parseText(value: FormDataEntryValue | null): string {
+  if (typeof value !== "string") return "";
+  return value.trim();
+}
+
 export async function createTransaction(formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Unauthorized");
+  const user = await requireCurrentUser();
   if (user.role === "viewer") throw new Error("Forbidden");
 
-  const materialId = parseInt(formData.get("materialId") as string);
-  const quantity = parseInt(formData.get("quantity") as string);
-  const site = (formData.get("site") as string) || "";
-  const building = (formData.get("building") as string) || "";
+  const materialId = parsePositiveInt(formData.get("materialId"));
+  const quantity = parsePositiveInt(formData.get("quantity"));
+  const site = parseText(formData.get("site"));
+  const building = parseText(formData.get("building"));
 
-  if (!Number.isFinite(materialId) || !Number.isFinite(quantity) || quantity <= 0) {
+  if (!materialId || !quantity || !site || !building) {
     throw new Error("Invalid input");
   }
-  if (!site.trim() || !building.trim()) {
-    throw new Error("Invalid input");
+
+  const material = await prisma.material.findUnique({
+    where: { id: materialId },
+    select: { id: true },
+  });
+
+  if (!material) {
+    throw new Error("Material not found");
   }
 
   await prisma.transaction.create({
@@ -41,34 +47,67 @@ export async function createTransaction(formData: FormData) {
       site,
       building,
       status: "PENDING",
-      material: { connect: { id: materialId } },
-      sender: { connect: { id: user.id } },
+      materialId: material.id,
+      senderId: user.id,
     },
   });
 
-  revalidatePath("/approve"); // รีเฟรชหน้าคนรับ
-  revalidatePath("/");        // รีเฟรชหน้า Dashboard
+  revalidatePath("/");
+  revalidatePath("/approve");
+  revalidatePath("/transactions");
 }
 
-// 2. Receive materials (mark COMPLETED)
 export async function approveTransaction(formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Unauthorized");
+  const user = await requireCurrentUser();
   if (user.role === "viewer") throw new Error("Forbidden");
 
-  const id = parseInt(formData.get("id") as string);
-  if (!Number.isFinite(id)) throw new Error("Invalid input");
+  const id = parsePositiveInt(formData.get("id"));
+  if (!id) throw new Error("Invalid input");
 
-  await prisma.transaction.update({
-    where: { id },
+  const result = await prisma.transaction.updateMany({
+    where: { id, status: "PENDING" },
     data: {
       status: "COMPLETED",
-      receiver: { connect: { id: user.id } },
+      receiverId: user.id,
       completedAt: new Date(),
     },
-    include: { material: true },
   });
 
-  revalidatePath("/approve");
+  if (result.count === 0) {
+    throw new Error("Transaction already processed or not found");
+  }
+
   revalidatePath("/");
+  revalidatePath("/approve");
+  revalidatePath("/transactions");
+}
+
+export async function upsertMaterial(formData: FormData) {
+  const user = await requireCurrentUser();
+  if (user.role !== "admin") throw new Error("Forbidden");
+
+  const name = parseText(formData.get("name"));
+  const unit = parseText(formData.get("unit"));
+  const typeRaw = parseText(formData.get("type"));
+
+  if (!name || !unit || !VALID_TYPES.has(typeRaw as MaterialType)) {
+    throw new Error("Invalid input");
+  }
+
+  await prisma.material.upsert({
+    where: { name },
+    update: {
+      type: typeRaw as MaterialType,
+      unit,
+    },
+    create: {
+      name,
+      type: typeRaw as MaterialType,
+      unit,
+    },
+  });
+
+  revalidatePath("/materials");
+  revalidatePath("/inbound");
+  revalidatePath("/outbound");
 }

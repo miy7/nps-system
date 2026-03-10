@@ -1,4 +1,5 @@
 "use client";
+
 import { useRouter } from "next/navigation";
 
 export default function LogoutButton() {
@@ -7,14 +8,16 @@ export default function LogoutButton() {
   async function handleLogout() {
     await fetch("/api/logout", { method: "POST" });
     router.push("/login");
+    router.refresh();
   }
 
   return (
     <button
       onClick={handleLogout}
-      className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 text-sm font-medium transition"
+      className="rounded-lg bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600"
+      type="button"
     >
-      ออกจากระบบ
+      Logout
     </button>
   );
 }

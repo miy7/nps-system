@@ -5,29 +5,31 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "start": "next start"
-  },
-  "prisma": {
-    "seed": "node prisma/seed.js"
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "prisma db seed"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0",
-    "bcryptjs": "^3.0.3",
-    "jose": "^6.1.3",
-    "next": "16.1.6",
-    "next-auth": "^4.24.13",
-    "prisma": "5.22.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "@prisma/client": "^5.0.0",
+    "bcryptjs": "^2.4.3",
+    "jose": "^6.2.0",
+    "next": "14.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.6",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/react": "19.2.14",
+    "prisma": "^5.0.0",
+    "tailwindcss": "^4.0.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.0"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   }
 }

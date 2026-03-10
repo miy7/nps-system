@@ -1,7 +1,27 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { signToken } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+function mapLoginError(error: unknown): { message: string; status: number } {
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    return { message: "Database connection failed", status: 500 };
+  }
+
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2021") {
+      return { message: "Database tables are missing", status: 500 };
+    }
+    return { message: "Database query failed", status: 500 };
+  }
+
+  if (error instanceof Error && /JWT_SECRET|NEXTAUTH_SECRET|AUTH_SECRET/i.test(error.message)) {
+    return { message: "Server auth secret is missing", status: 500 };
+  }
+
+  return { message: "Login error", status: 500 };
+}
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
@@ -56,6 +76,7 @@ export async function POST(req: Request) {
     return res;
   } catch (e) {
     console.error("login_failed_exception", e);
-    return NextResponse.json({ error: "Login error" }, { status: 500 });
+    const mapped = mapLoginError(e);
+    return NextResponse.json({ error: mapped.message }, { status: mapped.status });
   }
 }

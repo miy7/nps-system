@@ -1,8 +1,15 @@
+import { redirect } from "next/navigation";
 import { approveTransaction } from "../actions";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/session";
+
+export const dynamic = "force-dynamic";
 
 export default async function ApprovePage() {
-  // ดึงรายการที่ยังไม่ได้รับ (PENDING)
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (user.role === "viewer") redirect("/");
+
   const pendingItems = await prisma.transaction.findMany({
     where: { status: "PENDING" },
     include: { material: true, sender: true },
@@ -10,44 +17,52 @@ export default async function ApprovePage() {
   });
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold mb-6">✅ นาย B: ตรวจรับของ</h1>
-      
-      {pendingItems.length === 0 ? (
-        <p className="text-gray-500">ไม่มียอดค้างรับจ้า</p>
-      ) : (
-        <table className="w-full border-collapse border border-gray-300">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border p-2">เวลา</th>
-              <th className="border p-2">ผู้ส่ง</th>
-              <th className="border p-2">สถานที่</th>
-              <th className="border p-2">วัสดุ</th>
-              <th className="border p-2">จำนวน</th>
-              <th className="border p-2">จัดการ</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pendingItems.map((item) => (
-              <tr key={item.id} className="text-center">
-                <td className="border p-2">{item.createdAt.toLocaleTimeString()}</td>
-                <td className="border p-2">{item.sender.username}</td>
-                <td className="border p-2">{item.site} / {item.building}</td>
-                <td className="border p-2">{item.material.name}</td>
-                <td className="border p-2 font-bold text-blue-600">{item.quantity}</td>
-                <td className="border p-2">
-                  <form action={approveTransaction}>
-                    <input type="hidden" name="id" value={item.id} />
-                    <button className="bg-green-500 text-white px-4 py-1 rounded hover:bg-green-600">
-                      กดรับของ
-                    </button>
-                  </form>
-                </td>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Approve Receiving</h1>
+        <p className="text-sm text-slate-500">Confirm pending transfers to move stock into completed state.</p>
+      </div>
+
+      <div className="overflow-x-auto rounded-2xl bg-white p-4 shadow-sm">
+        {pendingItems.length === 0 ? (
+          <p className="py-10 text-center text-sm text-slate-500">No pending transfers.</p>
+        ) : (
+          <table className="min-w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-slate-500">
+                <th className="py-2 pr-3 font-medium">Created</th>
+                <th className="py-2 pr-3 font-medium">Sender</th>
+                <th className="py-2 pr-3 font-medium">Location</th>
+                <th className="py-2 pr-3 font-medium">Material</th>
+                <th className="py-2 pr-3 font-medium">Qty</th>
+                <th className="py-2 pr-3 font-medium">Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </thead>
+            <tbody>
+              {pendingItems.map((item) => (
+                <tr key={item.id} className="border-b border-slate-100 last:border-b-0">
+                  <td className="py-3 pr-3 text-slate-600">{item.createdAt.toLocaleString()}</td>
+                  <td className="py-3 pr-3 text-slate-900">{item.sender.username}</td>
+                  <td className="py-3 pr-3 text-slate-600">{item.site} / {item.building}</td>
+                  <td className="py-3 pr-3 text-slate-900">{item.material.name}</td>
+                  <td className="py-3 pr-3 font-semibold text-blue-700">{item.quantity}</td>
+                  <td className="py-3 pr-3">
+                    <form action={approveTransaction}>
+                      <input type="hidden" name="id" value={item.id} />
+                      <button
+                        type="submit"
+                        className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                      >
+                        Approve
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }

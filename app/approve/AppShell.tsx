@@ -1,5 +1,5 @@
 import Link from "next/link";
-import LogoutButton from "./LogoutButton";
+import LogoutButton from "../components/LogoutButton";
 import { getCurrentUser, type AppRole } from "@/lib/session";
 
 function getMenuByRole(role: AppRole) {
