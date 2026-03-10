@@ -1,6 +1,6 @@
 # NPS Store System
 
-A production-oriented inventory transfer system built with Next.js App Router + Prisma + MySQL.
+A production-oriented inventory transfer system built with Next.js App Router + Prisma + PostgreSQL.
 
 ## Core Features
 
@@ -17,7 +17,7 @@ A production-oriented inventory transfer system built with Next.js App Router + 
 - Next.js 14
 - TypeScript
 - Prisma ORM
-- MySQL
+- PostgreSQL
 - Tailwind CSS
 
 ## Environment Variables
@@ -25,7 +25,7 @@ A production-oriented inventory transfer system built with Next.js App Router + 
 Copy `.env.example` to `.env` and set real values:
 
 ```bash
-DATABASE_URL="mysql://USER:PASSWORD@HOST:3306/nps_system"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/nps_system?sslmode=require"
 JWT_SECRET="replace-with-a-strong-secret"
 ```
 
